@@ -604,7 +604,7 @@ netsnmp_binary_array_get_subset(netsnmp_container *c, void *key, int *len)
 {
     binary_array_table *t;
     void          **subset;
-    int             start, end;
+    int             start, end, subset_size;
     size_t          i;
 
     /*
@@ -628,11 +628,13 @@ netsnmp_binary_array_get_subset(netsnmp_container *c, void *key, int *len)
      * find matching items
      */
     start = end = binary_search_for_start((netsnmp_index *)key, c);
-    if (start == -1)
+    if (start < 0 || start == INT_MAX)
         return NULL;
 
     for (i = start + 1; i < t->count; ++i) {
         if (0 != c->ncompare(t->data[i], key))
+            break;
+        if (end == INT_MAX)
             break;
         ++end;
     }
@@ -641,9 +643,10 @@ netsnmp_binary_array_get_subset(netsnmp_container *c, void *key, int *len)
     if (*len <= 0 || *len > INT_MAX / sizeof(void*))
         return NULL;
 
-    subset = (void **)malloc((*len) * sizeof(void*));
+    subset_size = *len * sizeof(void *);
+    subset = malloc(subset_size);
     if (subset)
-        memcpy(subset, &t->data[start], sizeof(void*) * (*len));
+        memcpy(subset, &t->data[start], subset_size);
 
     return subset;
 }
